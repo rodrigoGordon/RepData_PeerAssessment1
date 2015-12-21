@@ -77,22 +77,42 @@ hist(totalNumberStepsPerDayBeforeNA$Freq)
     ```
 
 ## What is the average daily activity pattern?
-- Time series plot for # of Steps taken ~ Avg across all days
+- Time series plot for the average number of Steps taken across all days crossed with the intervals
 
 ```r
 #credits to http://stackoverflow.com/questions/4683242/calculating-a-daily-mean-in-r
 #credits to http://r.789695.n4.nabble.com/How-to-quot-flatten-quot-a-multidimensional-array-into-a-dataframe-td4572108.html
 part2 <- as.data.frame.table(tapply(activityDataSet$steps,activityDataSet[,3],mean,na.rm = TRUE))
 
-plot(part2$Var1 , 
-     part2$Freq, 
-     type = "l",
-     lwd = 3,
-     col = "red"
-     )
+library(lattice)
+
+#credits to http://stackoverflow.com/questions/21711479/reduce-tick-marks-in-xyplot-in-r
+## calculate position and create labels
+x.tick.number <- 13
+at <- seq(1, nrow(part2), length.out=x.tick.number)
+
+
+labelInterval <- factor(c(0, 130, 325, 520, 715, 910, 1120, 1340, 1600, 1820, 2040, 2200, 2355))
+xyplot(Freq ~  Var1, type = "l",data=part2, scales=list(y=list(tick.number=10), 
+                                   x=list(at=at, labels=labelInterval, rot=65)), xlab = "Intervals", ylab = "Steps")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-6-1.png) 
+
+
+### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps
+And the answer is:
+
+```r
+part2[which.max( part2[,2] ), ]
+```
+
+```
+##     Var1     Freq
+## 104  835 206.1698
+```
+
+Which means that at 8:35am people would usually walk 200 steps, but you saw that coming right?
 
 
 ## Imputing missing values
@@ -156,7 +176,7 @@ totalNumberStepsPerDayAfterNA <- as.data.frame.table(tapply(copyActivityDataSet$
 hist(totalNumberStepsPerDayAfterNA$Freq)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-11-1.png) 
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
 
 ```r
 mean(totalNumberStepsPerDayAfterNA$Freq)
@@ -198,3 +218,33 @@ And the values are the same, magic? Maybe not; If you saw any mistake, please le
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Let's find out:
+
+###Creating a New factor variable in the dataset with two levels – “weekday” and “weekend”
+
+```r
+#Let's create the factor for all days in the dataset
+copyActivityDataSet$dayType <- ifelse((weekdays(copyActivityDataSet$date) == "Saturday" | weekdays(copyActivityDataSet$date) == "Sunday") , "weekend", "weekday")
+
+
+library(lattice)
+#define the new column as a factor
+copyActivityDataSet <- transform(copyActivityDataSet, dayType = factor(dayType))
+
+#Make a subset calculating the mean of steps across all days counting for Weekday or Weekend
+panelPlot <- as.data.frame.table(tapply(copyActivityDataSet$steps,copyActivityDataSet[,3:4],mean,na.rm = TRUE))
+
+#Pre process the plot
+x.tick.number <- 13
+at <- seq(1, nrow(panelPlot), length.out=x.tick.number)
+labelIntervalWeek <- factor(c(0, 130, 325, 520, 715, 910, 1120, 1340, 1600, 1820, 2040, 2200, 2355))
+
+xyplot(Freq ~  interval | panelPlot$dayType , type = "l",data=panelPlot, scales=list(y=list(tick.number=13), 
+                                   x=list(at=at, labels=labelIntervalWeek, rot=65)), xlab = "Intervals", ylab = "Steps",layout = c(1, 2))
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-14-1.png) 
+
+
+And the answer it's yes! We can see that during the weekend people tend to walk at a constant ratio between noon and 4pm. While weekdays have a peak in the morning( aroung 9am) and noon.
